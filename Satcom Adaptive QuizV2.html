@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Satcom Adaptive Quiz</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1b1f24;--mu:#667;--bd:#d6dae0;--ac:#2563eb;--ok:#15803d;--okb:#dcfce7;--no:#b91c1c;--nob:#fee2e2;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111418;--card:#1b2027;--tx:#e8eaed;--mu:#9aa;--bd:#333b45;--ac:#60a5fa;--ok:#4ade80;--okb:#14532d;--no:#f87171;--nob:#531d1d}}
+:root[data-theme="dark"]{--bg:#111418;--card:#1b2027;--tx:#e8eaed;--mu:#9aa;--bd:#333b45;--ac:#60a5fa;--ok:#4ade80;--okb:#14532d;--no:#f87171;--nob:#531d1d}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+.w{max-width:680px;margin:0 auto;padding:16px}
+.st{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.st div{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:8px;text-align:center}
+.st b{display:block;font-size:20px}.st span{font-size:12px;color:var(--mu)}
+.bar{height:8px;background:var(--bd);border-radius:4px;overflow:hidden;margin-bottom:16px}
+.bar i{display:block;height:100%;background:var(--ac);width:0;transition:width .3s}
+.c{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px}
+.qn{font-size:13px;color:var(--mu);margin-bottom:6px}
+h2{font-size:18px;margin:0 0 14px}
+.o{display:block;width:100%;text-align:left;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:11px 12px;margin-bottom:8px;font:inherit;cursor:pointer}
+.o:hover:not(:disabled){border-color:var(--ac)}
+.o.ok{background:var(--okb);border-color:var(--ok)}.o.no{background:var(--nob);border-color:var(--no)}
+.fb{margin:10px 0;font-weight:600}
+.btn{background:var(--ac);color:#fff;border:0;border-radius:10px;padding:10px 18px;font:inherit;cursor:pointer}
+.big{font-size:42px;font-weight:700;text-align:center;margin:8px 0}
+</style></head><body><div class="w">
+<div class="st"><div><b id="sc">0</b><span>First-try correct</span></div><div><b id="at">0</b><span>Attempts</span></div><div><b id="ms">0/0</b><span>Mastered</span></div><div><b id="sk">0</b><span>Streak</span></div></div>
+<div class="bar"><i id="pb"></i></div>
+<div class="c" id="box"></div></div>
+<script>
+// [number, question, correct, [3 wrong], fixedOrder?]
+const D=[
+[1,"What is a satellite?","A moon, planet or machine that orbits a planet or star",["A machine that travels in a straight line away from Earth","A star that gives off its own light","A ground-based radio tower"]],
+[2,"What does the term artificial satellite refer to?","A machine that is launched into space and moves around Earth",["A natural moon orbiting Earth","A weather balloon that stays in the atmosphere","A star created by humans"]],
+[3,"Why are satellites important? (data)","Satellites allow collecting more data quicker than instruments on the ground",["Satellites collect less data, but more slowly","Satellites only work in daylight","Satellites replace all ground stations"]],
+[4,"Why are satellites important? (line of sight)","Satellites help resolve line of sight issues",["Satellites make line of sight issues worse","Satellites only work with physical cables","Satellites block all radio signals"]],
+[5,"What are the five types of satellites?","Communication, weather, remote sensing, navigation and scientific research",["Communication, weather, cooking, navigation and mining","Spot, zone, hemi, global and offset","Linear, circular, polar, square and oval"]],
+[6,"What is a communication satellite?","An artificial satellite that transmits video, voice and data signals via a transponder",["A satellite that only photographs weather","A satellite used only for GPS","A natural satellite that reflects sunlight"]],
+[7,"How does a communication satellite network work?","It uses microwaves from one ground station to an orbiting satellite, then relays them down to another ground station on a completely different frequency",["It uses cables from one ground station up to the satellite and back","It uses sound waves between two ground stations","It uses microwaves only between satellites in space"]],
+[8,"What does \"Uplink\" in Satcom refer to?","The transmitting of a signal to a designated satellite",["Sending signals from the satellite down to ground stations","The movement of a satellite into orbit","The power supply of a satellite"]],
+[9,"What is the terminology used for the Satcom link from the source ground station to the satellite?","Uplink",["Downlink","Crosslink","Backlink"]],
+[10,"What does downlink in Satcom refer to?","Sending one or more signals from the satellite to ground stations across the globe",["Sending signals from a ground station up to the satellite","Linking two satellites together","The cable between a modem and an antenna"]],
+[11,"What is the terminology used for the Satcom link from the satellite to the ground station?","Downlink",["Uplink","Crosslink","Sidelink"]],
+[12,"What is an orbit?","A regular repeating path that one object in space takes around another",["A straight path away from Earth","The speed of a satellite","The brightest point in the sky"]],
+[13,"Satellites are held in their orbits by:","Earth's gravity",["Earth's magnetic field","Constantly firing rocket thrusters","Solar wind"]],
+[14,"What are the two types of satellite orbit?","Circular orbit and elliptical orbit",["Linear orbit and circular orbit","Spot orbit and zone orbit","Linear orbit and parabolic orbit"]],
+[15,"What is a characteristic of a circular orbit?","A fixed distance from the geocentre, in the shape of a circle",["An oval path with a varying distance from Earth","A path pointing straight at the Sun","A path that never goes around Earth"]],
+[16,"What is the eccentricity of a circular orbit?","0.0",["0.5","1.0","2.0"]],
+[17,"Which of the following is NOT an example of a circular orbit?","Highly Elliptical Orbit (HEO)",["Low Earth Orbit (LEO)","Medium Earth Orbit (MEO)","Geostationary Earth Orbit (GEO)"]],
+[18,"Which orbit is nearest to Earth's surface?","Low Earth Orbit (LEO)",["Medium Earth Orbit (MEO)","Geostationary Earth Orbit (GEO)","Highly Elliptical Orbit (HEO)"]],
+[19,"What is the altitude of Low Earth Orbit above the Earth?","160 to 2000 kilometres",["2000 to 35,786 kilometres","35,786 kilometres","50,000 kilometres"]],
+[20,"What is the speed of Low Earth Orbit?","7.8 kilometres per second",["3 kilometres per second","0.5 kilometres per second","30 kilometres per second"]],
+[21,"How long does Low Earth Orbit take to orbit the Earth?","90 to 120 minutes",["2 to 6 hours","23 hours 56 minutes","One year"]],
+[22,"What is Low Earth Orbit suitable for?","Satellite imaging",["Deep space exploration","Fixed broadcasting over a third of the Earth","Radio telescopes on the Moon"]],
+[23,"Why is Low Earth Orbit suitable for satellite imaging?","It is close to the Earth, giving high-resolution images",["It is far from Earth, giving wide but blurry images","It stays fixed over one point on the equator","It has no gravity acting on it"]],
+[24,"What is the altitude of Medium Earth Orbit (MEO) above Earth's surface?","2,000 to 35,786 kilometres",["160 to 2,000 kilometres","35,786 kilometres only","50,000 kilometres"]],
+[25,"What is the speed of Medium Earth Orbit (MEO)?","7.5 kilometres per second",["7.8 kilometres per second","3 kilometres per second","11 kilometres per second"]],
+[26,"How long does Medium Earth Orbit (MEO) take to orbit the Earth?","2 to 6 hours",["90 to 120 minutes","23 hours 56 minutes","48 hours"]],
+[27,"What is Medium Earth Orbit (MEO) suitable for?","Navigation systems",["Satellite imaging","Deep space probes","Observing the Sun"]],
+[28,"What is the altitude of Geostationary Earth Orbit (GEO) above Earth's surface?","35,786 kilometres",["160 kilometres","2,000 kilometres","50,000 kilometres"]],
+[29,"What is the speed of Geostationary Earth Orbit (GEO)?","3 kilometres per second",["7.8 kilometres per second","7.5 kilometres per second","12 kilometres per second"]],
+[30,"How long does Geostationary Earth Orbit (GEO) take to orbit Earth?","23 hours 56 minutes 4 seconds",["90 minutes","2 to 6 hours","48 hours"]],
+[31,"Which statement is true regarding Geostationary Earth Orbit (GEO)?","GEO is suitable for telecommunication satellites",["GEO is suitable only for satellite imaging","GEO is the nearest orbit to Earth","GEO satellites move faster than LEO satellites"]],
+[32,"Which statement is true regarding Geostationary Earth Orbit (GEO)? (weather)","GEO is suitable for weather monitoring satellites",["GEO is suitable only for navigation systems","GEO satellites have the smallest footprint","GEO has an eccentricity greater than 1"]],
+[33,"What is the difference between Geostationary Earth Orbit (GEO) and any other orbital movement?","It virtually appears stationary",["It moves fastest across the sky","It is the nearest orbit to Earth","It passes over the poles"]],
+[34,"What is the delay of a Geostationary Earth Orbit (GEO) satellite transmission?","1 way 125 ms, 2-way 250 ms",["1 way 5 ms, 2-way 10 ms","1 way 1 s, 2-way 2 s","No delay"]],
+[35,"What area of the Earth's surface does a geostationary satellite cover?","1/3",["1/10","2/3","All of the Earth"]],
+[36,"Which statement is true regarding Geostationary Earth Orbit (GEO)? (period)","The orbital period of a geostationary satellite is equal to the Earth's rotation",["The orbital period is 90 minutes","The orbital period is one year","The orbital period is 2 to 6 hours"]],
+[37,"Which orbit has the smallest footprint?","Low Earth Orbit (LEO)",["Medium Earth Orbit (MEO)","Geostationary Earth Orbit (GEO)","All orbits have equal footprints"]],
+[38,"Which orbit has the largest footprint?","Geostationary Earth Orbit (GEO)",["Low Earth Orbit (LEO)","Medium Earth Orbit (MEO)","LEO and MEO equally"]],
+[39,"What is an elliptical orbit?","One object revolving around another in an oval shape called an ellipse",["One object revolving around another in a perfect circle","One object moving in a straight line past another","One object revolving in a figure of eight"]],
+[40,"What is the eccentricity of an elliptical orbit?","Greater than 0 but less than 1",["Exactly 0","Exactly 1","Greater than 1"]],
+[41,"Which of the following is an example of an elliptical orbit?","Highly Elliptical Orbit (HEO)",["Low Earth Orbit (LEO)","Medium Earth Orbit (MEO)","Geostationary Earth Orbit (GEO)"]],
+[42,"What is perigee?","The closest point a satellite orbits to Earth",["The farthest point a satellite orbits from Earth","The time for one full orbit","The highest speed of a satellite"]],
+[43,"What is apogee?","The farthest point a satellite orbits from Earth",["The closest point a satellite orbits to Earth","The time for one full orbit","The lowest speed of a satellite"]],
+[44,"What is an orbital period?","The time taken for a satellite to make one full orbit",["The closest point to Earth","The farthest point from Earth","The speed of the satellite"]],
+[45,"How long is Earth's orbital period?","One year",["24 hours","One month","100 years"]],
+[46,"What is the perigee altitude of a Highly Elliptical Orbit (HEO)?","500 kilometres",["160 kilometres","5,000 kilometres","35,786 kilometres"]],
+[47,"What is the apogee altitude of a Highly Elliptical Orbit (HEO)?","50 X 10^3 kilometres",["500 kilometres","2,000 kilometres","35,786 kilometres"]],
+[48,"Why does a satellite in HEO move faster at perigee?","Due to higher gravitational pull from Earth",["Due to lower gravitational pull from Earth","Due to stronger solar wind","Due to its engines firing constantly"]],
+[49,"Why does a satellite in HEO move slower at apogee?","Due to lower gravitational pull from Earth",["Due to higher gravitational pull from Earth","Due to stronger solar wind","Due to its thrusters reversing"]],
+[50,"What is a Highly Elliptical Orbit (HEO) suitable for?","Remote sensing, military recon and weather",["Navigation systems only","Fixed TV broadcasting","Deep space radio"]],
+[51,"What is Kepler's first law?","All planets revolve around the Sun in elliptical orbits, with the Sun at one of the foci",["Planets revolve around the Sun in perfect circles with the Sun at the centre","Planets revolve around the Earth in ellipses","Planets move at constant speed"]],
+[52,"What is Kepler's second law?","The radius vector from the Sun to the planet sweeps out equal areas in equal intervals of time",["The radius vector sweeps out equal distances in equal times","Planets move at a constant speed","The square of the period equals the cube of the axis"]],
+[53,"What is Kepler's third law?","The square of the period of revolution is directly proportional to the cube of the semi-major axis",["The period is inversely proportional to the semi-major axis","The square of the period is proportional to the square of the axis","The period is independent of the axis"]],
+[54,"What are the three measurement parameters used in pointing the satellite?","Azimuth, Elevation and Tilt",["Latitude, longitude and altitude","Polarization, frequency and gain","Apogee, perigee and eccentricity"]],
+[55,"What is azimuth?","The horizontal alignment pointing to a satellite",["The upward tilt of the antenna","The length of path to the satellite","The polarization angle"]],
+[56,"What is the azimuth of a particular satellite determined by?","Latitude and longitude",["Transmit power and bandwidth","Modulation scheme","Antenna weight"]],
+[57,"What is elevation?","The upward tilt of the antenna",["The horizontal alignment to a satellite","The length of path to the satellite","The polarization angle"]],
+[58,"What is elevation measured in?","Degrees",["Metres","Watts","Hertz"]],
+[59,"What is tilt?","The length of path between the satellite and Earth",["The upward tilt of the antenna","The horizontal alignment to a satellite","The time for one orbit"]],
+[60,"What is the other term for tilt?","Slant range",["Azimuth","Elevation","Eccentricity"]],
+[61,"What happens to the frequency when the wavelength is decreased?","The frequency will increase",["The frequency will decrease","The frequency stays the same","The frequency becomes zero"]],
+[62,"What happens to the frequency when the wavelength is increased?","The frequency will decrease",["The frequency will increase","The frequency stays the same","The frequency doubles"]],
+[63,"What happens to the wavelength when the frequency is decreased?","The wavelength will increase",["The wavelength will decrease","The wavelength stays the same","The wavelength becomes zero"]],
+[64,"What happens to the wavelength when the frequency is increased?","The wavelength will decrease",["The wavelength will increase","The wavelength stays the same","The wavelength doubles"]],
+[65,"What is the speed of light?","3 X 10^8 m/s",["3 X 10^5 m/s","3 X 10^6 m/s","3 X 10^10 m/s"]],
+[66,"What equation can the speed of light be calculated by?","Wavelength X frequency",["Wavelength / frequency","Frequency - wavelength","Wavelength + frequency"]],
+[67,"What is SHF?","Super High Frequency",["Super Heavy Frequency","Standard High Frequency","Satellite High Frequency"]],
+[68,"Which of the following frequency bands is NOT a Satcom frequency band?","D band",["C band","Ku band","Ka band"]],
+[69,"What does the term Ku refer to?","K-Under",["K-Above","K-Upper","K-Ultra"]],
+[70,"What does the term Ka refer to?","K-Above",["K-Under","K-Ultra","K-Alpha"]],
+[71,"Which of the following bands is less affected by rain fade?","C band",["Ka band","Ku band","Q band"]],
+[72,"Which statement is true regarding C band transmission?","C band requires a large antenna dish",["C band requires a very small dish","C band is the band most affected by rain fade","C band is used only for DVB"]],
+[73,"Which frequency band is popular in military communication?","X band",["D band","C band","Ku band"]],
+[74,"Which of the following frequency bands has the shortest wavelength?","Ku band",["C band","L band","S band"]],
+[75,"Which of the following frequency bands is widely used for DVB?","Ku band",["L band","S band","D band"]],
+[76,"What does DVB stand for?","Digital Video Broadcasting",["Digital Voice Broadcasting","Direct Video Band","Data Video Bridge"]],
+[77,"Which statement is true regarding Ku band transmissions?","It is widely used in DVB and VSAT applications",["It is used only for deep-space probes","It is used only for AM radio broadcasting","It is completely unaffected by weather"]],
+[78,"Which frequency band is most affected by rain fade?","Ka Band",["C Band","L Band","S Band"]],
+[79,"Which statement is true regarding Ka band transmissions?","Ka Band has high capacity due to large frequency bandwidth",["Ka Band has very low capacity due to narrow bandwidth","Ka Band is immune to rain fade","Ka Band is used only for HF radio"]],
+[80,"What is signal polarization?","The polarization pattern of the radiated electromagnetic (EM) signal from a transmitting antenna",["The loudness of the signal at the receiver","The speed of the signal through space","The carrier frequency of the transmission"]],
+[81,"What does a polarization pattern radiate from?","Antenna",["Modem","Transponder","Power supply"]],
+[82,"What is the measurement unit of Transmission Power?","W per M^2",["Hertz","Bits per second","Decibels per kilometre"]],
+[83,"What is the benefit of signal polarization?","It allows frequency \"re-use\"",["It increases rain fade","It lowers the satellite orbit","It removes the need for an antenna"]],
+[84,"What are the types of signal polarization available?","Linear Polarization and Circular Polarization",["Spot and Zone Polarization","Bent pipe and Regenerative Polarization","Offset and Centre Polarization"]],
+[85,"What are the types of polarization available in Linear Polarization?","Vertical and Horizontal Polarization",["Right hand and Left hand Polarization","Spot and Zone Polarization","Uplink and Downlink Polarization"]],
+[86,"Which of the following is true regarding Linear Polarization?","It is less costly than Circular Polarization",["It is more costly than Circular Polarization","It cannot be used for frequency re-use","It is used only in military satellites"]],
+[87,"Which of the following is FALSE regarding circular polarization?","Circular Polarization is mostly used commercially",["It has right hand and left hand types","It is used in military satellites","It is more costly than linear polarization"]],
+[88,"Which type of polarization is most frequently used in a military context?","Circular Polarization",["Linear Polarization","Vertical Polarization only","Horizontal Polarization only"]],
+[89,"What are the types of polarization available in Circular Polarization?","Right hand and Left hand Polarization",["Vertical and Horizontal Polarization","Spot and Zone Polarization","Uplink and Downlink Polarization"]],
+[90,"Which type of signal polarization is used in military and international satellites?","Circular Polarization",["Linear Polarization","Horizontal Polarization only","Vertical Polarization only"]],
+[91,"What are the types of satellite transponder available?","Bent pipe and Regenerative",["Spot and Zone","Linear and Circular","Offset and Centre feed"]],
+[92,"How many transponders does a typical satellite have?","24 - 100",["1 - 5","5 - 10","500 - 1000"]],
+[93,"What is the typical bandwidth of a satellite transponder?","500 MHz",["5 MHz","50 kHz","5 GHz"]],
+[94,"What is the function of a satellite transponder?","Receives the signal from the Earth station on the uplink, amplifies it and retransmits it on the downlink at a different frequency",["Receives the signal and retransmits it at the same frequency","Only generates power for the satellite","Only keeps the satellite in orbit"]],
+[95,"What is the satellite footprint?","A map of signal strength over a geographic area of the Earth's surface",["The physical size of the satellite","The orbit path of the satellite","The number of transponders on board"]],
+[96,"What are the typical footprint beams available?","Spot, Zone, Hemi and Global",["Linear, Circular, Hemi and Spot","Bent, Zone, Global and Offset","Spot, Cone, Hemi and Linear"]],
+[97,"Which footprint beam covers almost 1/3 of the Earth's surface?","Global",["Spot","Zone","Hemi"]],
+[98,"What is Equivalent Isotropic Radiated Power (EIRP) measured in?","dBW",["Hz","Bits per second","Metres"]],
+[99,"What is Equivalent Isotropic Radiated Power (EIRP) displayed as?","Contour lines",["A pie chart","A bar graph","A pulse waveform"]],
+[100,"What is an earth station?","A collection of equipment installed on the Earth's surface that enables communication over one or more satellites",["A satellite orbiting the Earth","A rocket launch facility","A weather monitoring tower"]],
+[101,"What are the classification criteria for an earth station?","Antenna dish diameter, frequency band, figure of merit and mode of operation",["Colour, weight, height and price","Dish material, location and age","Satellite name, orbit and launch date"]],
+[102,"Which of the following is NOT an earth station?","Transmit only station",["Receive only station","Transmit and receive station","Gateway station"]],
+[103,"What are the types of earth station antenna available?","Centre feed and offset feed",["Linear and circular feed","Spot and zone feed","Horn and wire feed"]],
+[104,"Which antenna does NOT have its feed horn located in the centre?","Offset antenna",["Centre feed antenna","Prime focus antenna","Symmetrical dish antenna"]],
+[105,"What is the efficiency of a Cassegrain antenna?","65-70%",["10-15%","30-35%","95-100%"]],
+[106,"What is the typical inefficiency of a Gregorian antenna?","10%",["50%","75%","90%"]],
+[107,"Which statement is true regarding antenna parameters?","Antenna gain is proportional to the size of the antenna",["Antenna gain is inversely proportional to antenna size","Antenna gain is unrelated to antenna size","Antenna gain decreases as frequency increases"]],
+[108,"Which is true regarding the earth station tracking system?","Satellite beacon frequencies are used for tracking satellites",["Tracking uses only visible light","Tracking uses the transponder power supply","Tracking is not needed for any satellite"]],
+[109,"Which of the following is NOT part of the earth station structure?","Transponder",["Antenna","Feed horn","Waveguide"]],
+[110,"Which statement is FALSE regarding the feed horn?","During receiving, the feed horn illuminates the antenna reflector with RF energy",["During transmitting, the feed horn illuminates the reflector with RF energy","During receiving, the reflector focuses signal onto the feed horn","The feed horn is located at the focal point area"]],
+[111,"What is a waveguide?","A device made of a hollow conductor",["A device made of a hollow insulator","A solid copper cable","A type of satellite"]],
+[112,"What is the function of a waveguide?","Guides the RF electromagnetic wave along its inner path to the antenna for transmission",["Generates the carrier frequency","Converts audio to video","Stores power for the dish"]],
+[113,"What is the key characteristic of waveguides?","Waves propagate in all directions",["Waves propagate only backwards","Waves do not propagate at all","Waves convert to sound"]],
+[114,"Which statement is FALSE regarding waveguides?","A waveguide is a device made of a hollow insulator",["A waveguide is made of a hollow conductor","A waveguide guides RF waves along its inner path","A waveguide carries RF energy to the antenna"]],
+[115,"What is the average size of a Low Noise Amplifier?","20 cm",["2 m","5 m","20 mm"]],
+[116,"Which statement is true regarding the Low Noise Amplifier?","It is mounted directly at the antenna receive feed to minimise losses",["It is mounted far away from the antenna","It is used only on the transmit path","It adds as much noise as possible"]],
+[117,"Where is the LNA located on a satellite dish?","On the antenna",["Inside the modem","At the power plant","Inside the satellite"]],
+[118,"What is the function of a Low Noise Amplifier?","To amplify the received signal",["To amplify the transmitted signal","To generate the carrier","To modulate the data"]],
+[119,"What is the function of a Low Noise Block?","A device used to receive a signal from a satellite, down convert the frequency and amplify the signal for further processing",["A device that up converts and transmits the signal","A device that only stores data","A device that only points the antenna"]],
+[120,"Which path is the LNB in?","Receive",["Transmit","Power","Tracking"]],
+[121,"Which of the following is true regarding the LNB?","The Low Noise Block detects the satellite signal relayed from the feed, converts it to an electric current, amplifies it and lowers its frequency",["It raises the signal frequency for transmission","It only amplifies and never changes frequency","It is used only on the satellite"]],
+[122,"What is the function of a Low Noise Block?","Down convert and amplify the received satellite signal",["Up convert and amplify the transmit signal","Only guide waves to the antenna","Only point the dish"]],
+[123,"What is the difference between a Low Noise Block and a Low Noise Amplifier?","LNB down converts and amplifies the received signal while the LNA just amplifies the signal",["LNA down converts and LNB just amplifies","Both only up convert the signal","There is no difference at all"]],
+[124,"What does the term \"HPA\" refer to?","High Power Amplifier",["High Pressure Antenna","Horizontal Polarization Array","High Phase Adapter"]],
+[125,"Which of the following is true regarding the HPA?","It amplifies a specific band of frequencies by a large amount",["It amplifies all frequencies by a small amount","It only reduces noise","It is used only on the receive path"]],
+[126,"Which of the following is NOT a type of high power amplifier?","Reed Solomon amplifier",["Klystron amplifier","Travelling Wave Tube amplifier","Solid State Power amplifier"]],
+[127,"Which path is the HPA in?","Transmit",["Receive","Tracking","Power only"]],
+[128,"Which of the following is NOT a type of HPA?","Radio wave cylinder amplifier",["Klystron power amplifier","Travelling wave tube amplifier","Solid state power amplifier"]],
+[129,"What is the bandwidth of a Klystron power amplifier?","40-80 MHz",["500 MHz","5 GHz","1-2 kHz"]],
+[130,"What makes the Klystron power amplifier different from the other HPA variations?","It is cheaper and easier to set up",["It has the widest bandwidth","It has no vacuum tube","It is used only on satellites"]],
+[131,"Which of the following is NOT part of a travelling wave tube amplifier?","Copper cable",["Helix coil","Electron gun","Collector"]],
+[132,"What is the correct sequence of a travelling wave tube amplifier?","Electron gun, RF input, Magnet, Attenuator, Helix coil, RF output, vacuum tube and collector",["Collector, Helix coil, RF input, Attenuator, Magnet, Electron gun, RF output and vacuum tube","RF output, Magnet, Electron gun, Helix coil, Attenuator, RF input, collector and vacuum tube","Helix coil, Electron gun, Collector, RF input, Magnet, Attenuator, vacuum tube and RF output"]],
+[133,"What is the bandwidth of a travelling wave tube amplifier?","500 MHz",["40-80 MHz","5 kHz","50 GHz"]],
+[134,"What makes SSPA different from the other HPAs?","It has limited power compared to the other HPAs",["It has the highest power of all HPAs","It uses a helix coil","It uses a vacuum tube"]],
+[135,"What is Phase Shift Keying (PSK)?","A digital modulation technique used for satellite DVB/DVB-S2 transmissions",["An analogue amplitude technique for AM radio","A type of antenna feed","A method of tracking satellites"]],
+[136,"What is modulation?","The process of conveying a message signal",["The process of cooling an amplifier","The process of pointing an antenna","The process of launching a satellite"]],
+[137,"Which of these can be modulated and then transmitted via an intermediate frequency carrier?","All of the above",["Audio","Video","Data signal"],1],
+[138,"Which of the following is NOT a type of PSK used in satellite transmission?","Eight Quadrature Phase Shift Keying (8-QPSK)",["Binary Phase Shift Keying (BPSK)","Quadrature Phase Shift Keying (QPSK)","8 Phase Shift Keying (8PSK)"]],
+[139,"What does QAM stand for?","Quadrature Amplitude Modulation",["Quick Access Modulation","Quantum Amplitude Mapping","Quadrature Antenna Matching"]],
+[140,"Which of the following is NOT a type of modulation used in satellite transmission?","Amplitude Modulation",["QPSK","8PSK","16-QAM"]],
+[141,"What is symbol rate?","The number of symbols per second transmitted by the modem",["The number of antennas per modem","The number of bits per symbol","The number of satellites per orbit"]],
+[142,"Which of the following is FALSE regarding modulation schemes?","BPSK = 5",["BPSK = 1","QPSK = 2","8PSK = 3"]],
+[143,"Which of the following is NOT a type of satellite access?","MDMA - Modulation Division Multiple Access",["FDMA - Frequency Division Multiple Access","TDMA - Time Division Multiple Access","CDMA - Code Division Multiple Access"]],
+[144,"What is FDMA commonly used in?","Satellite communication",["Cooking appliances","Underwater diving","Print publishing"]],
+[145,"What is FDMA?","Frequency Division Multiple Access",["Time Division Multiple Access","Code Division Multiple Access","Fast Data Modulation Access"]],
+[146,"What is TDMA?","Time Division Multiple Access",["Frequency Division Multiple Access","Transmit Data Modulation Access","Total Data Multiple Access"]],
+[147,"What is CDMA?","Code Division Multiple Access",["Carrier Data Modulation Access","Cable Division Multiple Access","Central Data Multiple Access"]],
+[148,"What is a link budget?","The analysis that shows the overall satisfactory results of a signal transmitted and received",["The cost of building an earth station","The monthly rental of a transponder","The power consumption of a modem"]],
+[149,"What does ASI stand for?","Adjacent Satellite Interference",["Adjustment Satellite Interference","Antenna Signal Index","Automatic Satellite Input"]],
+[150,"Which statement is true regarding the Earth Verification Test?","All the above are true regarding Earth Verification Test",["The purpose of Earth Verification Test is to verify the optimal antenna pointing prior to the actual transmission","The purpose of Earth Verification Test is to manually analyse the spectrum of the test carrier","The purpose of Earth Verification Test is to ensure that transmission can be received at maximum power by the satellite transponder and does not interfere with other transmission on the opposite polarization"],2]
+];
+let Q,done,first,att,streak,cur,wrongOnce;
+const $=id=>document.getElementById(id);
+const sh=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+function start(){Q=sh(D.map((_,i)=>i));done=0;first=0;att=0;streak=0;wrongOnce=new Set();next()}
+function hud(){$("sc").textContent=first;$("at").textContent=att;$("ms").textContent=done+"/"+D.length;$("sk").textContent=streak;$("pb").style.width=done/D.length*100+"%"}
+function opts(d){
+ if(d[4]===1)return [[d[3][0],0],[d[3][1],0],[d[3][2],0],[d[2],1]];
+ if(d[4]===2)return [[d[3][0],0],[d[2],1],[d[3][1],0],[d[3][2],0]];
+ return sh([[d[2],1],...d[3].map(x=>[x,0])]);
+}
+function next(){
+ hud();
+ if(!Q.length){$("box").innerHTML='<div class="big">🎉 '+first+' / '+D.length+'</div><p style="text-align:center">All questions mastered!<br>First-try correct: '+first+' · Total attempts: '+att+'</p><p style="text-align:center"><button class="btn" id="rs">Restart</button></p>';$("rs").onclick=start;return}
+ cur=Q.shift();const d=D[cur],L="ABCD",o=opts(d);
+ $("box").innerHTML='<div class="qn">Question '+d[0]+(wrongOnce.has(cur)?" · retry":"")+'</div><h2></h2><div id="os"></div><div class="fb" id="fb"></div><div id="nx"></div>';
+ $("box").querySelector("h2").textContent=d[1];
+ o.forEach((x,i)=>{const b=document.createElement("button");b.className="o";b.textContent=L[i]+") "+x[0];b.onclick=()=>pick(b,x[1],o,d);b.dataset.c=x[1];$("os").appendChild(b)});
+}
+function pick(b,ok,o,d){
+ att++;const bs=[...document.querySelectorAll(".o")];bs.forEach(x=>x.disabled=true);
+ const fb=$("fb");
+ if(ok){b.classList.add("ok");fb.style.color="var(--ok)";fb.textContent="✓ Correct!";streak++;done++;if(!wrongOnce.has(cur))first++}
+ else{b.classList.add("no");bs.find(x=>x.dataset.c==="1").classList.add("ok");fb.style.color="var(--no)";fb.textContent="✗ Not quite — this one will come back.";streak=0;wrongOnce.add(cur);Q.splice(Math.min(Q.length,3+(Math.random()*3|0)),0,cur)}
+ hud();const n=document.createElement("button");n.className="btn";n.textContent=Q.length?"Next":"Finish";n.onclick=next;$("nx").appendChild(n);
+}
+start();
+</script></body></html>
